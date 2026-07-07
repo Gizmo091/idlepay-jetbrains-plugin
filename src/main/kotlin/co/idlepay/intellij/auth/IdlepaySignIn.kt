@@ -45,9 +45,13 @@ object IdlepaySignIn {
         ApplicationManager.getApplication().invokeLater {
             val input = Messages.showInputDialog(
                 project,
-                "Complete sign-in with Google in your browser.\n\n" +
-                    "If your IDE didn't open automatically, copy the whole \"jetbrains://…\" link from the\n" +
-                    "idlepay page (or just the token) and paste it here:",
+                "Finish signing in to idlepay in 3 steps:\n\n" +
+                    "1.  A browser window just opened — sign in with Google there.\n" +
+                    "2.  On the idlepay page, copy the \"return to your IDE\" link\n" +
+                    "     (it starts with \"jetbrains://\").\n" +
+                    "3.  Paste that link in the field below, then click OK.\n\n" +
+                    "JetBrains can't open the IDE automatically, so this copy-paste step is required.\n" +
+                    "Tip: you can paste the whole link or just the token.",
                 "Sign in to idlepay",
                 Messages.getInformationIcon(),
             )
