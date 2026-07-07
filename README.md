@@ -9,6 +9,8 @@ JetBrains gap.
 > Not affiliated with idlepay. This is a compatible community client for a service you sign up for at
 > idlepay.co. It talks to the same public backend the official client uses.
 
+![idlepay — the sponsored ad widget in a JetBrains IDE status bar](preview.png)
+
 ## How it earns
 
 idlepay credits impressions on two independent **surfaces**. This project makes both work under
