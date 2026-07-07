@@ -1,0 +1,45 @@
+<!-- Plugin Configuration File. Read more: https://plugins.jetbrains.com/docs/intellij/plugin-configuration-file.html -->
+<idea-plugin>
+    <id>co.idlepay.intellij</id>
+    <name>idlepay</name>
+    <vendor url="https://idlepay.co">idlepay (community client)</vendor>
+    <description><![CDATA[
+        <p><b>Unofficial IntelliJ / JetBrains client for <a href="https://idlepay.co">idlepay</a>.</b></p>
+        <p>idlepay sells the idle moments of your AI coding sessions to sponsors and pays you a share of every
+        impression. The official client ships as a VS Code extension; this plugin brings the same two earning
+        surfaces to JetBrains IDEs:</p>
+        <ul>
+            <li>a status-bar ad widget that earns credited impressions while you code with Claude, and</li>
+            <li>a sign-in that produces <code>~/.idlepay/identity.json</code> so the Claude Code status line
+            earns from the JetBrains terminal too.</li>
+        </ul>
+        <p>Not affiliated with idlepay. Source-available in the spirit of the upstream FSL-1.1-MIT client.</p>
+    ]]></description>
+
+    <depends>com.intellij.modules.platform</depends>
+
+    <extensions defaultExtensionNs="com.intellij">
+        <statusBarWidgetFactory
+            id="co.idlepay.statusbar"
+            implementation="co.idlepay.intellij.statusbar.IdlepayStatusBarWidgetFactory"
+            order="first" />
+        <postStartupActivity implementation="co.idlepay.intellij.core.IdlepayStartup" />
+        <jbProtocolCommand implementation="co.idlepay.intellij.auth.IdlepayProtocolCommand" />
+        <notificationGroup id="idlepay" displayType="BALLOON" />
+    </extensions>
+
+    <actions>
+        <group id="idlepay.group" text="idlepay" popup="true">
+            <add-to-group group-id="ToolsMenu" anchor="last" />
+            <action id="idlepay.signIn"
+                    class="co.idlepay.intellij.actions.SignInAction"
+                    text="Sign in to idlepay" />
+            <action id="idlepay.signOut"
+                    class="co.idlepay.intellij.actions.SignOutAction"
+                    text="Sign out of idlepay" />
+            <action id="idlepay.openDashboard"
+                    class="co.idlepay.intellij.actions.OpenDashboardAction"
+                    text="Open idlepay Dashboard" />
+        </group>
+    </actions>
+</idea-plugin>

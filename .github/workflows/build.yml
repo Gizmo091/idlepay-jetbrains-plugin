@@ -1,0 +1,33 @@
+name: Build
+
+# Validate that the plugin compiles and packages on every push to main and on pull requests.
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build:
+    name: Build plugin
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Build plugin
+        run: ./gradlew buildPlugin --console=plain
+
+      - name: Upload build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: idlepay-plugin
+          path: build/distributions/*.zip
