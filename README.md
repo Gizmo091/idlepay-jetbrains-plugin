@@ -128,5 +128,23 @@ src/main/kotlin/co/idlepay/intellij/
 
 ## License
 
-Source-available in the spirit of the upstream client's FSL-1.1-MIT. Trademarks and the idlepay
-service belong to idlepay.
+Copyright © 2026 Mathieu Vedie.
+
+This project is licensed under the **GNU Affero General Public License v3.0** (AGPL-3.0) — see
+[`LICENSE`](LICENSE). You're free to use, study, modify, and self-host it under those terms; in
+particular, anyone who conveys it or runs a modified version as a network service must make the
+complete corresponding source available under the AGPL.
+
+### Commercial / dual licensing
+
+The AGPL copyleft is deliberate. If **idlepay** — or any company — wants to adopt this plugin, ship it
+inside a proprietary product, or otherwise use it without the AGPL's obligations, a **separate
+commercial license is required**. As the sole copyright holder I'm happy to arrange one:
+
+- GitHub: [@Gizmo091](https://github.com/Gizmo091)
+- Email: mathieu.vedie@gmail.com
+
+### Note on idlepay
+
+This is an unofficial client. The "idlepay" name, brand, and backend service belong to idlepay; this
+project only implements a client for that service and claims no rights over them.
