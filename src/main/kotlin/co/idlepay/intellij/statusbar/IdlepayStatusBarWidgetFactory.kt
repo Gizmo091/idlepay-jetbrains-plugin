@@ -25,10 +25,14 @@ import com.intellij.openapi.wm.StatusBarWidgetFactory
 import com.intellij.ui.awt.RelativePoint
 import com.intellij.ui.components.JBLabel
 import com.intellij.util.ui.JBUI
+import java.awt.BorderLayout
 import java.awt.Color
+import java.awt.Cursor
 import java.awt.event.MouseAdapter
 import java.awt.event.MouseEvent
+import javax.swing.BorderFactory
 import javax.swing.JComponent
+import javax.swing.JPanel
 import javax.swing.SwingUtilities
 
 class IdlepayStatusBarWidgetFactory : StatusBarWidgetFactory {
@@ -45,6 +49,11 @@ private const val MAX_TEXT = 48
 /** idlepay brand green (#12b981), used as the widget background. */
 private val IDLEPAY_GREEN = Color(0x12, 0xB9, 0x81)
 
+/**
+ * Two-zone status-bar widget:
+ *  - the ad label (left) — left-click opens the tracked ad (or starts sign-in when signed out),
+ *  - a "⋮" menu label (right) — left-click opens the idlepay menu.
+ */
 private class IdlepayStatusBarWidget(private val project: Project) : CustomStatusBarWidget {
 
     private val service get() = IdlepayService.getInstance()
@@ -53,27 +62,46 @@ private class IdlepayStatusBarWidget(private val project: Project) : CustomStatu
 
     private val refresh = Runnable { updateLabel() }
 
-    private val label = JBLabel().apply {
+    private val adLabel = JBLabel().apply {
+        isOpaque = false
+        foreground = Color.WHITE
+        border = JBUI.Borders.empty(0, 8, 0, 6)
+        cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+    }
+
+    private val menuLabel = JBLabel("⋮").apply {
+        isOpaque = false
+        foreground = Color.WHITE
+        border = BorderFactory.createCompoundBorder(
+            JBUI.Borders.customLine(Color(255, 255, 255, 80), 0, 1, 0, 0),
+            JBUI.Borders.empty(0, 7),
+        )
+        cursor = Cursor.getPredefinedCursor(Cursor.HAND_CURSOR)
+        toolTipText = "idlepay menu"
+    }
+
+    private val panel = JPanel(BorderLayout()).apply {
         isOpaque = true
         background = IDLEPAY_GREEN
-        foreground = Color.WHITE
-        border = JBUI.Borders.empty(0, 8)
+        add(adLabel, BorderLayout.CENTER)
+        add(menuLabel, BorderLayout.EAST)
     }
 
     init {
-        label.addMouseListener(object : MouseAdapter() {
+        adLabel.addMouseListener(object : MouseAdapter() {
             override fun mouseClicked(e: MouseEvent) {
-                if (!SwingUtilities.isLeftMouseButton(e)) return
-                // Right-click is reserved by the IDE for its "status bar widgets" management menu, so
-                // — like the built-in widgets (Git branch, encoding, …) — we open our menu on the
-                // left click.
-                if (settings.isSignedIn) showMenu(e) else IdlepaySignIn.start(project)
+                if (SwingUtilities.isLeftMouseButton(e)) onMainClick()
+            }
+        })
+        menuLabel.addMouseListener(object : MouseAdapter() {
+            override fun mouseClicked(e: MouseEvent) {
+                if (SwingUtilities.isLeftMouseButton(e)) showMenu(e)
             }
         })
     }
 
     override fun ID(): String = IdlepayConstants.WIDGET_ID
-    override fun getComponent(): JComponent = label
+    override fun getComponent(): JComponent = panel
     override fun getPresentation(): StatusBarWidget.WidgetPresentation? = null
 
     override fun install(statusBar: StatusBar) {
@@ -90,22 +118,22 @@ private class IdlepayStatusBarWidget(private val project: Project) : CustomStatu
     // --- rendering ------------------------------------------------------------
 
     private fun updateLabel() {
-        label.text = when {
+        adLabel.text = when {
             !settings.isSignedIn -> "✶ idlepay — sign in"
             else -> service.currentAd?.let { ad ->
                 val t = ad.text.trim()
                 "📣 " + if (t.length > MAX_TEXT) t.take(MAX_TEXT - 1).trimEnd() + "…" else t
             } ?: "✶ idlepay"
         }
-        label.toolTipText = buildTooltip()
-        label.background = IDLEPAY_GREEN
-        label.revalidate()
-        label.repaint()
+        adLabel.toolTipText = buildTooltip()
+        panel.background = IDLEPAY_GREEN
+        panel.revalidate()
+        panel.repaint()
     }
 
     private fun buildTooltip(): String {
         if (!settings.isSignedIn) {
-            return "<html>idlepay<br>Click to sign in and start earning</html>"
+            return "<html>idlepay<br>Left-click to sign in · ⋮ for the menu</html>"
         }
         val sb = StringBuilder("<html>idlepay")
         service.profile?.login?.let { sb.append(" — @").append(it) }
@@ -114,13 +142,18 @@ private class IdlepayStatusBarWidget(private val project: Project) : CustomStatu
             sb.append(" · Lifetime ").append(DeveloperEarnings.microToUsd(e.lifetimeMicroUsd))
             sb.append("<br>").append(e.impressionCount).append(" impressions")
         }
-        sb.append("<br>Click for menu</html>")
+        sb.append("<br>Left-click: open the ad · ⋮ for the menu</html>")
         return sb.toString()
     }
 
     // --- interaction ----------------------------------------------------------
 
-    private fun openAd() {
+    /** Left-click on the ad zone: open the ad, or start sign-in when signed out. */
+    private fun onMainClick() {
+        if (!settings.isSignedIn) {
+            IdlepaySignIn.start(project)
+            return
+        }
         val ad = service.currentAd
         val url = ad?.let { IdlepayApi.clickThroughUrl(it, settings.developerId()) }
         if (ad != null && url != null) {
@@ -131,17 +164,21 @@ private class IdlepayStatusBarWidget(private val project: Project) : CustomStatu
         }
     }
 
-    /** Left-click menu (shown only when signed in). */
+    /** The "⋮" menu. */
     private fun showMenu(e: MouseEvent) {
         val group = DefaultActionGroup()
-        if (service.currentAd?.url != null) group.add(action("Open current ad") { openAd() })
-        group.add(action("Open earnings dashboard") { BrowserUtil.browse(IdlepayConstants.DASHBOARD_URL) })
-        group.add(action("Refresh now") { service.refreshNow() })
-        group.addSeparator()
-        group.add(action("Sign out (pause earning here)") {
-            service.signOut()
-            IdlepaySignIn.notify(project, "Signed out of idlepay on this device. Earning is paused here.")
-        })
+        if (settings.isSignedIn) {
+            group.add(action("Open earnings dashboard") { BrowserUtil.browse(IdlepayConstants.DASHBOARD_URL) })
+            group.add(action("Refresh now") { service.refreshNow() })
+            group.addSeparator()
+            group.add(action("Sign out (pause earning here)") {
+                service.signOut()
+                IdlepaySignIn.notify(project, "Signed out of idlepay on this device. Earning is paused here.")
+            })
+        } else {
+            group.add(action("Sign in to idlepay") { IdlepaySignIn.start(project) })
+            group.add(action("Refresh now") { service.refreshNow() })
+        }
         JBPopupFactory.getInstance()
             .createActionGroupPopup(
                 "idlepay",
