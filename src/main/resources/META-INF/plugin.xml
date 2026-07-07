@@ -13,7 +13,10 @@
             <li>a sign-in that produces <code>~/.idlepay/identity.json</code> so the Claude Code status line
             earns from the JetBrains terminal too.</li>
         </ul>
-        <p>Not affiliated with idlepay. Source-available in the spirit of the upstream FSL-1.1-MIT client.</p>
+        <p>Not affiliated with idlepay. Licensed under <b>AGPL-3.0</b> (&copy; 2026 Mathieu Vedie).
+        Commercial or proprietary adoption &mdash; including by idlepay &mdash; requires a separate
+        commercial license; contact <a href="https://github.com/Gizmo091">@Gizmo091</a> or
+        <a href="mailto:mathieu.vedie@gmail.com">mathieu.vedie@gmail.com</a>.</p>
     ]]></description>
 
     <depends>com.intellij.modules.platform</depends>
