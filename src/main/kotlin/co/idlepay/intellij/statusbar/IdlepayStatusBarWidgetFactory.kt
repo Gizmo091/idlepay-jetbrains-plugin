@@ -59,10 +59,12 @@ private class IdlepayStatusBarWidget(private val project: Project) : CustomStatu
 
     init {
         label.addMouseListener(object : MouseAdapter() {
-            override fun mousePressed(e: MouseEvent) { if (e.isPopupTrigger) showMenu(e) }
-            override fun mouseReleased(e: MouseEvent) { if (e.isPopupTrigger) showMenu(e) }
             override fun mouseClicked(e: MouseEvent) {
-                if (SwingUtilities.isLeftMouseButton(e) && !e.isPopupTrigger) onLeftClick()
+                if (!SwingUtilities.isLeftMouseButton(e)) return
+                // Right-click is reserved by the IDE for its "status bar widgets" management menu, so
+                // — like the built-in widgets (Git branch, encoding, …) — we open our menu on the
+                // left click.
+                if (settings.isSignedIn) showMenu(e) else IdlepaySignIn.start(project)
             }
         })
     }
@@ -100,7 +102,7 @@ private class IdlepayStatusBarWidget(private val project: Project) : CustomStatu
 
     private fun buildTooltip(): String {
         if (!settings.isSignedIn) {
-            return "<html>idlepay<br>Left-click or right-click to sign in and start earning</html>"
+            return "<html>idlepay<br>Click to sign in and start earning</html>"
         }
         val sb = StringBuilder("<html>idlepay")
         service.profile?.login?.let { sb.append(" — @").append(it) }
@@ -109,17 +111,13 @@ private class IdlepayStatusBarWidget(private val project: Project) : CustomStatu
             sb.append(" · Lifetime ").append(DeveloperEarnings.microToUsd(e.lifetimeMicroUsd))
             sb.append("<br>").append(e.impressionCount).append(" impressions")
         }
-        sb.append("<br>Left-click: open ad · Right-click: menu</html>")
+        sb.append("<br>Click for menu</html>")
         return sb.toString()
     }
 
     // --- interaction ----------------------------------------------------------
 
-    private fun onLeftClick() {
-        if (!settings.isSignedIn) {
-            IdlepaySignIn.start(project)
-            return
-        }
+    private fun openAd() {
         val ad = service.currentAd
         val url = ad?.let { IdlepayApi.clickThroughUrl(it, settings.developerId()) }
         if (ad != null && url != null) {
@@ -130,21 +128,17 @@ private class IdlepayStatusBarWidget(private val project: Project) : CustomStatu
         }
     }
 
+    /** Left-click menu (shown only when signed in). */
     private fun showMenu(e: MouseEvent) {
         val group = DefaultActionGroup()
-        if (settings.isSignedIn) {
-            if (service.currentAd?.url != null) group.add(action("Open current ad") { onLeftClick() })
-            group.add(action("Open earnings dashboard") { BrowserUtil.browse(IdlepayConstants.DASHBOARD_URL) })
-            group.add(action("Refresh now") { service.refreshNow() })
-            group.addSeparator()
-            group.add(action("Sign out (pause earning here)") {
-                service.signOut()
-                IdlepaySignIn.notify(project, "Signed out of idlepay on this device. Earning is paused here.")
-            })
-        } else {
-            group.add(action("Sign in to idlepay") { IdlepaySignIn.start(project) })
-            group.add(action("Refresh now") { service.refreshNow() })
-        }
+        if (service.currentAd?.url != null) group.add(action("Open current ad") { openAd() })
+        group.add(action("Open earnings dashboard") { BrowserUtil.browse(IdlepayConstants.DASHBOARD_URL) })
+        group.add(action("Refresh now") { service.refreshNow() })
+        group.addSeparator()
+        group.add(action("Sign out (pause earning here)") {
+            service.signOut()
+            IdlepaySignIn.notify(project, "Signed out of idlepay on this device. Earning is paused here.")
+        })
         JBPopupFactory.getInstance()
             .createActionGroupPopup(
                 "idlepay",
